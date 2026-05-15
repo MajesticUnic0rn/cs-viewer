@@ -1,0 +1,15 @@
+{
+  "name": "cs-viewer",
+  "version": "1.0.0",
+  "description": "CS2 Skin Showcase — Case Opening & 3D Viewer",
+  "main": "index.js",
+  "scripts": {
+    "dev": "npx serve public"
+  },
+  "keywords": ["cs2", "csgo", "skins", "threejs", "3d"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "three": "^0.162.0"
+  }
+}

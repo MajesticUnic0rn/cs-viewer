@@ -1,0 +1,9 @@
+{
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/viewer/(.*)", "destination": "/viewer/$1" },
+    { "source": "/case/(.*)", "destination": "/case/$1" },
+    { "source": "/history/(.*)", "destination": "/history/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS2 Skin Showcase — Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  :root {
+    --accent: #de9b35;
+    --accent-light: #f0c060;
+    --accent-dim: #8a6a20;
+    --ink: #0a0a0f;
+    --smoke: #1a1a24;
+    --pearl: #f0ede6;
+    --glass: rgba(255,255,255,0.04);
+    --glass-border: rgba(222,155,53,0.15);
+    --rarity-consumer: #b0c3d9;
+    --rarity-industrial: #5e98d9;
+    --rarity-milspec: #4b69ff;
+    --rarity-restricted: #8847ff;
+    --rarity-classified: #d32ce6;
+    --rarity-covert: #eb4b4b;
+    --rarity-gold: #ffd700;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--ink);
+    font-family: 'Outfit', sans-serif;
+    color: var(--pearl);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #viewer {
+    position: fixed; inset: 0;
+    z-index: 1;
+  }
+
+  .atmosphere {
+    position: fixed; inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 55%, rgba(30,25,15,0.8) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 50% 45%, rgba(222,155,53,0.06) 0%, transparent 60%),
+      linear-gradient(180deg, #06060c 0%, #0d0d14 40%, #0a0a0f 100%);
+    pointer-events: none;
+  }
+
+  .grain {
+    position: fixed; inset: -50%;
+    width: 200%; height: 200%;
+    z-index: 999;
+    pointer-events: none;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ── Top Bar ── */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 40px;
+    pointer-events: none;
+  }
+
+  .logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 13px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--accent);
+    opacity: 0;
+    animation: fadeSlideDown 1s 0.6s ease forwards;
+  }
+
+  .logo span {
+    color: var(--accent-dim);
+    font-weight: 400;
+  }
+
+  .controls-hint {
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    color: rgba(240,237,230,0.25);
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeSlideDown 1s 1s ease forwards;
+  }
+
+  /* ── Info Panel ── */
+  .info-panel {
+    position: fixed;
+    bottom: 48px;
+    left: 40px;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0;
+    animation: fadeSlideUp 1.2s 1.2s ease forwards;
+  }
+
+  .info-panel .rarity-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--glass-border);
+    padding: 6px 14px;
+    border-radius: 2px;
+    margin-bottom: 18px;
+    backdrop-filter: blur(8px);
+    background: var(--glass);
+  }
+
+  .info-panel h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(32px, 4.5vw, 56px);
+    line-height: 1.1;
+    color: var(--pearl);
+    margin-bottom: 6px;
+  }
+
+  .info-panel h1 em {
+    font-style: italic;
+    color: var(--accent-light);
+  }
+
+  .info-panel .subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: 16px;
+    color: rgba(240,237,230,0.35);
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Bloom Slider ── */
+  .brightness-control {
+    position: fixed;
+    bottom: 140px;
+    right: 40px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+    animation: fadeSlideUp 1s 1.4s ease forwards;
+  }
+
+  .brightness-label {
+    font-size: 9px;
+    font-weight: 400;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+  }
+
+  .brightness-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100px;
+    height: 1px;
+    background: var(--glass-border);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .brightness-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+  }
+
+  .brightness-slider::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+  }
+
+  /* ── Vertical Label ── */
+  .vertical-label {
+    position: fixed;
+    right: 40px;
+    bottom: 48px;
+    z-index: 10;
+    writing-mode: vertical-rl;
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(240,237,230,0.15);
+    pointer-events: none;
+    opacity: 0;
+    animation: fadeSlideUp 1s 1.6s ease forwards;
+  }
+
+  /* ── Weapon Selector ── */
+  .weapon-selector {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    opacity: 0;
+    animation: fadeSlideUp 1s 1.4s ease forwards;
+  }
+
+  .weapon-card {
+    width: 120px;
+    padding: 8px 10px;
+    background: rgba(10,10,15,0.8);
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    transition: all 0.3s ease;
+    text-align: center;
+  }
+
+  .weapon-card:hover {
+    border-color: var(--accent-dim);
+    background: rgba(20,20,30,0.9);
+    transform: translateY(-2px);
+  }
+
+  .weapon-card.active {
+    border-color: var(--accent);
+    background: rgba(222,155,53,0.08);
+    box-shadow: 0 0 20px rgba(222,155,53,0.1);
+  }
+
+  .weapon-card .weapon-name {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--pearl);
+    margin-bottom: 2px;
+    white-space: nowrap;
+  }
+
+  .weapon-card .skin-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--accent-light);
+  }
+
+  .weapon-card .rarity-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-top: 6px;
+  }
+
+  /* ── Corner Lines ── */
+  .corner-line {
+    position: fixed;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .corner-line--tl {
+    top: 24px; left: 24px;
+    width: 40px; height: 40px;
+    border-top: 1px solid var(--glass-border);
+    border-left: 1px solid var(--glass-border);
+    animation: fadeIn 1s 1.8s ease forwards;
+  }
+
+  .corner-line--br {
+    bottom: 24px; right: 24px;
+    width: 40px; height: 40px;
+    border-bottom: 1px solid var(--glass-border);
+    border-right: 1px solid var(--glass-border);
+    animation: fadeIn 1s 2s ease forwards;
+  }
+
+  /* ── Loader ── */
+  .loader-overlay {
+    position: fixed; inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--ink);
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+  }
+
+  .loader-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .loader-icon {
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--accent-dim);
+    border-radius: 4px;
+    animation: loaderPulse 1.6s ease-in-out infinite;
+    position: relative;
+  }
+
+  .loader-icon::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1px solid var(--accent);
+    border-radius: 2px;
+    animation: loaderPulse 1.6s 0.3s ease-in-out infinite;
+  }
+
+  .loader-text {
+    margin-top: 32px;
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    animation: loaderTextPulse 1.6s ease-in-out infinite;
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeSlideDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes loaderPulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.08); }
+  }
+
+  @keyframes loaderTextPulse {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 0.9; }
+  }
+
+  @media (max-width: 640px) {
+    .topbar { padding: 20px 24px; }
+    .info-panel { left: 24px; bottom: 32px; }
+    .vertical-label { display: none; }
+    .corner-line--tl { top: 16px; left: 16px; }
+    .corner-line--br { bottom: 16px; right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="atmosphere"></div>
+<div class="grain"></div>
+
+<!-- Loader -->
+<div class="loader-overlay" id="loader">
+  <div class="loader-icon"></div>
+  <div class="loader-text">Loading scene</div>
+</div>
+
+<!-- Corner Lines -->
+<div class="corner-line corner-line--tl"></div>
+<div class="corner-line corner-line--br"></div>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="logo">CS2 <span>Showcase</span></div>
+  <div class="controls-hint">Drag to rotate &middot; Scroll to zoom</div>
+</div>
+
+<!-- Info Panel -->
+<div class="info-panel">
+  <div class="rarity-tag" style="color: var(--rarity-covert); border-color: rgba(235,75,75,0.3);">Covert</div>
+  <h1>AK-47 <em>Bloodsport</em></h1>
+  <div class="subtitle">The Spectrum Collection &middot; Gunsmith finish</div>
+</div>
+
+<!-- Weapon Selector -->
+<div class="weapon-selector" id="weaponSelector"></div>
+
+<!-- Bloom Slider (hidden) -->
+<!-- <div class="brightness-control">
+  <span class="brightness-label">Glow</span>
+  <input type="range" class="brightness-slider" id="bloomSlider" min="0" max="2" step="0.05" value="0.5" />
+</div> -->
+
+<!-- Vertical Label -->
+<div class="vertical-label">Three-Dimensional Inspection</div>
+
+<!-- Three.js Canvas -->
+<canvas id="viewer"></canvas>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+// ── Renderer ──
+const canvas = document.getElementById('viewer');
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  alpha: true,
+  powerPreference: 'high-performance'
+});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// ── Scene & Camera ──
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 4, 14);
+
+// ── Bloom Post-processing ──
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  0.25, 0.4, 0.95
+);
+composer.addPass(bloomPass);
+composer.addPass(new OutputPass());
+
+// document.getElementById('bloomSlider').addEventListener('input', (e) => {
+//   bloomPass.strength = parseFloat(e.target.value);
+// });
+
+// ── HDRI Environment ──
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+pmremGenerator.compileEquirectangularShader();
+
+let envReady = false;
+let modelReady = false;
+
+new RGBELoader().load(
+  'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloofendal_48d_partly_cloudy_puresky_1k.hdr',
+  (texture) => {
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    scene.environment = pmremGenerator.fromEquirectangular(texture).texture;
+    scene.background = pmremGenerator.fromEquirectangular(texture).texture;
+    texture.dispose();
+    pmremGenerator.dispose();
+    envReady = true;
+    checkReady();
+  },
+  undefined,
+  () => {
+    const roomScene = new RoomEnvironment(renderer);
+    scene.environment = pmremGenerator.fromScene(roomScene, 0.04).texture;
+    roomScene.dispose();
+    pmremGenerator.dispose();
+    envReady = true;
+    checkReady();
+  }
+);
+
+// ── Controls ──
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.2;
+controls.enablePan = false;
+controls.minDistance = 3;
+controls.maxDistance = 25;
+controls.maxPolarAngle = Math.PI * 0.58;
+controls.minPolarAngle = Math.PI * 0.15;
+controls.target.set(0, 1, 0);
+
+// ── Lighting ──
+scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+
+const keyLight = new THREE.SpotLight(0xfff0dd, 60, 40, Math.PI / 5, 0.3, 1);
+keyLight.position.set(5, 12, 6);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
+keyLight.shadow.bias = -0.001;
+scene.add(keyLight);
+
+const fillLight = new THREE.PointLight(0xc8d8ff, 15, 30, 1.5);
+fillLight.position.set(-6, 8, -4);
+scene.add(fillLight);
+
+const rimLight = new THREE.PointLight(0xffd080, 12, 25, 1.5);
+rimLight.position.set(-3, 3, 8);
+scene.add(rimLight);
+
+// (ground plane removed)
+
+// ── Weapon Data ──
+const WEAPONS = [
+  {
+    id: 'ak47_bloodsport',
+    weapon: 'AK-47',
+    skin: 'Bloodsport',
+    collection: 'The Spectrum Collection',
+    rarity: 'Covert',
+    rarityColor: '#eb4b4b',
+    model: '../models/ak47_full.glb',
+    texture: '../textures/ak47_bloodsport.png',
+    legacyMaterial: 'ak47',
+    hideMaterials: ['weapon_rif_ak47', 'sticker_gaps'],
+    metalness: 0.8,
+    roughness: 0.35,
+    scale: 8,
+    wrapTexture: true,
+  },
+  {
+    id: 'ak47_neon_rider',
+    weapon: 'AK-47',
+    skin: 'Neon Rider',
+    collection: 'The Danger Zone Case',
+    rarity: 'Covert',
+    rarityColor: '#eb4b4b',
+    model: '../models/ak47_full.glb',
+    texture: '../textures/ak47_neon_rider.png',
+    legacyMaterial: 'ak47',
+    hideMaterials: ['weapon_rif_ak47', 'sticker_gaps'],
+    metalness: 0.6,
+    roughness: 0.4,
+    scale: 8,
+    wrapTexture: true,
+  },
+  {
+    id: 'm4a4_howl',
+    weapon: 'M4A4',
+    skin: 'Howl',
+    collection: 'Contraband',
+    rarity: 'Contraband',
+    rarityColor: '#e4ae39',
+    model: '../models/m4a4_full.glb',
+    texture: '../textures/m4a4_howl.png',
+    legacyMaterial: 'rif_m4a1',
+    hideMaterials: ['weapon_rif_m4a4', 'sticker_gaps'],
+    metalness: 0.7,
+    roughness: 0.4,
+    scale: 8,
+  },
+  {
+    id: 'ak47_asiimov',
+    weapon: 'AK-47',
+    skin: 'Asiimov',
+    collection: 'Operation Vanguard',
+    rarity: 'Covert',
+    rarityColor: '#eb4b4b',
+    model: '../models/ak47_full.glb',
+    texture: '../textures/ak47_asiimov.png',
+    legacyMaterial: 'ak47',
+    hideMaterials: ['weapon_rif_ak47', 'sticker_gaps'],
+    metalness: 0.7,
+    roughness: 0.35,
+    scale: 8,
+    wrapTexture: true,
+  },
+  {
+    id: 'awp_dragon_lore',
+    weapon: 'AWP',
+    skin: 'Dragon Lore',
+    collection: 'The Cobblestone Collection',
+    rarity: 'Covert',
+    rarityColor: '#eb4b4b',
+    model: '../models/awp_full.glb',
+    texture: '../textures/awp_dragon_lore.png',
+    legacyMaterial: 'awp',
+    hideMaterials: ['weapon_snip_awp', 'sticker_gaps', 'shared_scope'],
+    metalness: 0.85,
+    roughness: 0.3,
+    scale: 8,
+    wrapTexture: true,
+  },
+  {
+    id: 'awp_gungnir',
+    weapon: 'AWP',
+    skin: 'Gungnir',
+    collection: 'The Norse Collection',
+    rarity: 'Covert',
+    rarityColor: '#eb4b4b',
+    model: '../models/awp_full.glb',
+    texture: '../textures/awp_gungnir.png',
+    legacyMaterial: 'awp',
+    hideMaterials: ['weapon_snip_awp', 'sticker_gaps', 'shared_scope'],
+    metalness: 0.85,
+    roughness: 0.3,
+    scale: 8,
+    wrapTexture: true,
+  },
+  {
+    id: 'deagle_mecha',
+    weapon: 'Desert Eagle',
+    skin: 'Mecha Industries',
+    collection: 'The Horizon Collection',
+    rarity: 'Covert',
+    rarityColor: '#eb4b4b',
+    model: '../models/deagle_full.glb',
+    texture: '../textures/deagle_mecha_industries.png',
+    legacyMaterial: 'pist_deagle',
+    hideMaterials: ['weapon_pist_deagle', 'sticker_gaps'],
+    metalness: 0.7,
+    roughness: 0.35,
+    scale: 5,
+    wrapTexture: true,
+  },
+  {
+    id: 'karambit_lore',
+    weapon: 'Karambit',
+    skin: 'Lore',
+    collection: 'Gamma Collection',
+    rarity: 'Covert',
+    rarityColor: '#ffd700',
+    model: '../models/karambit.glb',
+    texture: '../textures/karambit_lore.png',
+    legacyMaterial: 'weapon_knife_karambit',
+    hideMaterials: [],
+    metalness: 0.9,
+    roughness: 0.25,
+    scale: 5,
+  },
+  {
+    id: 'butterfly_lore',
+    weapon: 'Butterfly',
+    skin: 'Lore',
+    collection: 'Gamma Collection',
+    rarity: 'Covert',
+    rarityColor: '#ffd700',
+    model: '../models/butterfly.glb',
+    texture: '../textures/butterfly_lore.png',
+    legacyMaterial: 'weapon_knife_butterfly',
+    hideMaterials: [],
+    metalness: 0.9,
+    roughness: 0.25,
+    scale: 5,
+  },
+  {
+    id: 'm9_lore',
+    weapon: 'M9 Bayonet',
+    skin: 'Lore',
+    collection: 'Gamma Collection',
+    rarity: 'Covert',
+    rarityColor: '#ffd700',
+    model: '../models/m9_bayonet.glb',
+    texture: '../textures/m9_lore.png',
+    legacyMaterial: 'weapon_knife_m9',
+    hideMaterials: [],
+    metalness: 0.9,
+    roughness: 0.25,
+    scale: 5,
+  },
+];
+
+// ── Build Weapon Selector UI ──
+const selectorEl = document.getElementById('weaponSelector');
+WEAPONS.forEach((w, i) => {
+  const card = document.createElement('div');
+  card.className = 'weapon-card' + (i === 0 ? ' active' : '');
+  card.dataset.index = i;
+  card.innerHTML = `
+    <div class="weapon-name">${w.weapon}</div>
+    <div class="skin-name">${w.skin}</div>
+    <div class="rarity-dot" style="background:${w.rarityColor}"></div>
+  `;
+  card.addEventListener('click', () => loadWeapon(i));
+  selectorEl.appendChild(card);
+});
+
+// ── Load Weapon Model ──
+let weaponModel = null;
+let weaponPivot = null;
+let currentWeaponIndex = -1;
+let isLoading = false;
+
+const textureLoader = new THREE.TextureLoader();
+const gltfLoader = new GLTFLoader();
+
+function loadWeapon(index) {
+  if (index === currentWeaponIndex || isLoading) return;
+  isLoading = true;
+  const w = WEAPONS[index];
+
+  // Update selector UI
+  selectorEl.querySelectorAll('.weapon-card').forEach((c, i) => {
+    c.classList.toggle('active', i === index);
+  });
+
+  // Update info panel
+  const infoPanel = document.querySelector('.info-panel');
+  const rarityTag = infoPanel.querySelector('.rarity-tag');
+  rarityTag.textContent = w.rarity;
+  rarityTag.style.color = w.rarityColor;
+  rarityTag.style.borderColor = w.rarityColor + '4d';
+  infoPanel.querySelector('h1').innerHTML = `${w.weapon} <em>${w.skin}</em>`;
+  infoPanel.querySelector('.subtitle').textContent = `${w.collection} · Gunsmith finish`;
+
+  // Remove old model
+  if (weaponPivot) {
+    scene.remove(weaponPivot);
+    weaponPivot.traverse((child) => {
+      if (child.isMesh) {
+        child.geometry?.dispose();
+        if (child.material) {
+          if (child.material.map) child.material.map.dispose();
+          child.material.dispose();
+        }
+      }
+    });
+    weaponPivot = null;
+    weaponModel = null;
+  }
+
+  // Load skin texture
+  const skinTex = textureLoader.load(w.texture);
+  skinTex.flipY = false;
+  skinTex.colorSpace = THREE.SRGBColorSpace;
+  if (w.wrapTexture) {
+    skinTex.wrapS = THREE.RepeatWrapping;
+    skinTex.wrapT = THREE.RepeatWrapping;
+  }
+
+  // Check if we need a different GLB or can reuse
+  gltfLoader.load(
+    w.model,
+    (gltf) => {
+      weaponModel = gltf.scene;
+
+      // Normalize size
+      const bbox = new THREE.Box3().setFromObject(weaponModel);
+      const size = new THREE.Vector3();
+      bbox.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scale = w.scale / maxDim;
+      weaponModel.scale.setScalar(scale);
+
+      // Center the model
+      const center = new THREE.Vector3();
+      new THREE.Box3().setFromObject(weaponModel).getCenter(center);
+      weaponModel.position.sub(center);
+
+      // Wrap in pivot
+      weaponPivot = new THREE.Group();
+      weaponPivot.add(weaponModel);
+      weaponPivot.position.y = 1.5;
+
+      // Apply skin texture to legacy mesh, hide HD mesh
+      weaponModel.traverse((child) => {
+        if (!child.isMesh) return;
+        const mat = child.material;
+        const matName = mat?.name || '';
+
+        if (w.hideMaterials.some(h => matName === h)) {
+          child.visible = false;
+          return;
+        }
+
+        child.castShadow = true;
+        child.receiveShadow = true;
+
+        if (matName === w.legacyMaterial) {
+          mat.map = skinTex;
+          mat.metalness = w.metalness;
+          mat.roughness = w.roughness;
+          mat.envMapIntensity = 0.8;
+          mat.needsUpdate = true;
+        }
+      });
+
+      scene.add(weaponPivot);
+      controls.target.set(0, 1.5, 0);
+      camera.position.set(4, 3, 9);
+      controls.update();
+
+      currentWeaponIndex = index;
+      isLoading = false;
+      modelReady = true;
+      checkReady();
+    },
+    undefined,
+    (err) => {
+      console.error('Failed to load weapon model:', err);
+      isLoading = false;
+    }
+  );
+}
+
+// Load first weapon
+loadWeapon(0);
+
+// ── Ready ──
+function checkReady() {
+  if (envReady && modelReady) {
+    setTimeout(() => document.getElementById('loader').classList.add('hidden'), 400);
+  }
+}
+
+// ── Animation Loop ──
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  if (weaponPivot) {
+    weaponPivot.position.y = 1.5 + Math.sin(t * 0.8) * 0.06;
+  }
+
+  controls.update();
+  composer.render();
+}
+
+animate();
+
+// ── Resize ──
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+
+</body>
+</html>

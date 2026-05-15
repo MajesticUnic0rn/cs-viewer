@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS2 Case Opening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  :root {
+    --accent: #de9b35;
+    --accent-light: #f0c060;
+    --accent-dim: #8a6a20;
+    --ink: #0a0a0f;
+    --smoke: #1a1a24;
+    --pearl: #f0ede6;
+    --glass: rgba(255,255,255,0.04);
+    --glass-border: rgba(222,155,53,0.15);
+    --rarity-consumer: #b0c3d9;
+    --rarity-industrial: #5e98d9;
+    --rarity-milspec: #4b69ff;
+    --rarity-restricted: #8847ff;
+    --rarity-classified: #d32ce6;
+    --rarity-covert: #eb4b4b;
+    --rarity-gold: #ffd700;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--ink);
+    font-family: 'Outfit', sans-serif;
+    color: var(--pearl);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #viewer { position: fixed; inset: 0; z-index: 1; }
+
+  .atmosphere {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 55%, rgba(30,25,15,0.8) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 50% 45%, rgba(222,155,53,0.06) 0%, transparent 60%),
+      linear-gradient(180deg, #06060c 0%, #0d0d14 40%, #0a0a0f 100%);
+  }
+
+  .grain {
+    position: fixed; inset: -50%; width: 200%; height: 200%;
+    z-index: 999; pointer-events: none; opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ── Top Bar ── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 40px; pointer-events: none;
+  }
+
+  .logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300; font-size: 13px;
+    letter-spacing: 0.35em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  .logo span { color: var(--accent-dim); font-weight: 400; }
+
+  .back-link {
+    font-size: 11px; font-weight: 300;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: rgba(240,237,230,0.35);
+    text-decoration: none; pointer-events: auto;
+    transition: color 0.3s;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  /* ── Open Button ── */
+  .open-btn {
+    position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+    z-index: 10;
+    padding: 16px 48px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px; font-weight: 400;
+    letter-spacing: 0.3em; text-transform: uppercase;
+    color: var(--ink);
+    background: linear-gradient(135deg, var(--accent-light), var(--accent));
+    border: none; border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 30px rgba(222,155,53,0.3);
+  }
+  .open-btn:hover {
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 8px 40px rgba(222,155,53,0.5);
+  }
+  .open-btn:disabled {
+    opacity: 0.4; cursor: default;
+    transform: translateX(-50%);
+    box-shadow: none;
+  }
+
+  /* ── Result Panel ── */
+  .result-panel {
+    position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+    z-index: 10; text-align: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  .result-panel.visible { opacity: 1; pointer-events: auto; }
+
+  .result-panel .rarity-tag {
+    display: inline-block;
+    font-size: 10px; font-weight: 400;
+    letter-spacing: 0.3em; text-transform: uppercase;
+    border: 1px solid; padding: 6px 14px; border-radius: 2px;
+    margin-bottom: 14px;
+    backdrop-filter: blur(8px); background: var(--glass);
+  }
+
+  .result-panel h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300; font-size: 36px; line-height: 1.1;
+    color: var(--pearl); margin-bottom: 6px;
+  }
+  .result-panel h2 em { font-style: italic; color: var(--accent-light); }
+
+  .result-panel .subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300; font-style: italic; font-size: 14px;
+    color: rgba(240,237,230,0.35);
+  }
+
+  .result-panel .open-again {
+    margin-top: 20px; padding: 10px 32px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px; font-weight: 400;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--pearl); background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 2px; cursor: pointer;
+    transition: all 0.3s;
+  }
+  .result-panel .open-again:hover {
+    border-color: var(--accent); color: var(--accent);
+  }
+
+  /* ── Mode Toggle ── */
+  .mode-toggle {
+    position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
+    z-index: 10;
+    display: flex; gap: 0;
+    border: 1px solid var(--glass-border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .mode-toggle button {
+    padding: 8px 20px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 10px; font-weight: 400;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(240,237,230,0.4);
+    background: var(--glass);
+    border: none; cursor: pointer;
+    transition: all 0.3s;
+  }
+  .mode-toggle button.active {
+    color: var(--accent);
+    background: rgba(222,155,53,0.1);
+  }
+  .mode-toggle button:hover:not(.active) {
+    color: rgba(240,237,230,0.7);
+  }
+
+  /* ── Roulette ── */
+  .roulette-overlay {
+    position: fixed;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 55%;
+    max-width: 700px;
+    min-width: 400px;
+    z-index: 50;
+    height: 180px;
+    display: none;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .roulette-overlay.active { display: block; }
+  .roulette-overlay.fade-out {
+    animation: rouletteFadeOut 0.4s ease forwards;
+  }
+  @keyframes rouletteFadeOut {
+    to { opacity: 0; }
+  }
+
+  .roulette-viewport {
+    position: relative;
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: rgba(20,20,30,0.5);
+  }
+
+  .roulette-strip {
+    display: flex;
+    gap: 6px;
+    position: absolute;
+    top: 10px;
+    left: 0;
+    will-change: transform;
+  }
+
+  .roulette-item {
+    flex-shrink: 0;
+    width: 160px; height: 160px;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    display: flex; flex-direction: column;
+  }
+  .roulette-item .item-face {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(145deg, #c9a84c, #a08530, #8b7332);
+  }
+  .roulette-item .item-face img {
+    width: 80%; height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+  }
+  .roulette-item .item-bar {
+    height: 8px;
+    flex-shrink: 0;
+  }
+  .roulette-item.winner-glow {
+    animation: winnerPulse 0.5s ease-out;
+    box-shadow: 0 0 25px var(--glow-color, #eb4b4b);
+  }
+  @keyframes winnerPulse {
+    0% { box-shadow: 0 0 0 var(--glow-color, #eb4b4b); }
+    50% { box-shadow: 0 0 35px var(--glow-color, #eb4b4b); }
+    100% { box-shadow: 0 0 25px var(--glow-color, #eb4b4b); }
+  }
+
+  .roulette-indicator {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 50%; transform: translateX(-50%);
+    width: 3px;
+    background: #e8d44d;
+    box-shadow: 0 0 12px rgba(232,212,77,0.6);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* ── Mute Toggle ── */
+  .mute-btn {
+    position: fixed; bottom: 24px; right: 24px; z-index: 10;
+    width: 36px; height: 36px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 2px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--pearl); font-size: 16px;
+    opacity: 0.5; transition: opacity 0.3s;
+  }
+  .mute-btn:hover { opacity: 1; }
+  .mute-btn.muted { opacity: 0.25; }
+
+  /* ── Corner Lines ── */
+  .corner-line { position: fixed; z-index: 10; pointer-events: none; }
+  .corner-line--tl {
+    top: 24px; left: 24px; width: 40px; height: 40px;
+    border-top: 1px solid var(--glass-border);
+    border-left: 1px solid var(--glass-border);
+  }
+  .corner-line--br {
+    bottom: 24px; right: 24px; width: 40px; height: 40px;
+    border-bottom: 1px solid var(--glass-border);
+    border-right: 1px solid var(--glass-border);
+  }
+
+  /* ── Loader ── */
+  .loader-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: var(--ink);
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+  }
+  .loader-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  .loader-icon {
+    width: 40px; height: 40px;
+    border: 1px solid var(--accent-dim); border-radius: 4px;
+    animation: loaderPulse 1.6s ease-in-out infinite;
+    position: relative;
+  }
+  .loader-icon::after {
+    content: ''; position: absolute; inset: 6px;
+    border: 1px solid var(--accent); border-radius: 2px;
+    animation: loaderPulse 1.6s 0.3s ease-in-out infinite;
+  }
+  .loader-text {
+    margin-top: 32px; font-size: 10px; font-weight: 300;
+    letter-spacing: 0.4em; text-transform: uppercase;
+    color: var(--accent-dim);
+    animation: loaderTextPulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes loaderPulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.08); }
+  }
+  @keyframes loaderTextPulse {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 0.9; }
+  }
+</style>
+</head>
+<body>
+
+<div class="atmosphere"></div>
+<div class="grain"></div>
+
+<div class="loader-overlay" id="loader">
+  <div class="loader-icon"></div>
+  <div class="loader-text">Loading case</div>
+</div>
+
+<div class="corner-line corner-line--tl"></div>
+<div class="corner-line corner-line--br"></div>
+
+<div class="topbar">
+  <div class="logo">CS2 <span>Case Opening</span></div>
+  <a href="/viewer/" class="back-link">Viewer</a>
+</div>
+
+<div class="mode-toggle" id="modeToggle">
+  <button class="active" data-mode="cinematic">Cinematic</button>
+  <button data-mode="classic">Classic</button>
+</div>
+
+<button class="open-btn" id="openBtn">Open Case</button>
+
+<div class="roulette-overlay" id="rouletteOverlay">
+  <div class="roulette-viewport">
+    <div class="roulette-indicator"></div>
+    <div class="roulette-strip" id="rouletteStrip"></div>
+  </div>
+</div>
+
+<div class="result-panel" id="resultPanel">
+  <div class="rarity-tag" id="resultRarity">Covert</div>
+  <h2 id="resultTitle">AK-47 <em>Bloodsport</em></h2>
+  <div class="subtitle" id="resultSubtitle">The Spectrum Collection</div>
+  <button class="open-again" id="openAgain">Open Another</button>
+</div>
+
+<button class="mute-btn" id="muteBtn" title="Toggle sound">&#9834;</button>
+<canvas id="viewer"></canvas>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+// ── Audio Manager (Web Audio API) ──
+const AudioMgr = {
+  ctx: null,
+  buffers: {},
+  unlocked: false,
+  muted: false,
+
+  init() {
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (this.ctx.state === 'suspended') {
+      const resume = () => {
+        this.ctx.resume();
+        this.unlocked = true;
+        document.removeEventListener('click', resume);
+        document.removeEventListener('keydown', resume);
+      };
+      document.addEventListener('click', resume);
+      document.addEventListener('keydown', resume);
+    } else {
+      this.unlocked = true;
+    }
+  },
+
+  async load(name, url) {
+    try {
+      const resp = await fetch(url);
+      const buf = await resp.arrayBuffer();
+      this.buffers[name] = await this.ctx.decodeAudioData(buf);
+    } catch (e) {
+      console.warn(`Audio load failed: ${name}`, e);
+    }
+  },
+
+  play(name, { volume = 1, rate = 1 } = {}) {
+    const buf = this.buffers[name];
+    if (!buf || !this.ctx || this.muted) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = rate;
+    const gain = this.ctx.createGain();
+    gain.gain.value = volume;
+    src.connect(gain).connect(this.ctx.destination);
+    src.start(0);
+    return src;
+  },
+
+  async preloadAll() {
+    this.init();
+    await Promise.all([
+      this.load('crate_open', '../audio/csgo_ui_crate_open.wav'),
+      this.load('item_scroll', '../audio/csgo_ui_crate_item_scroll.wav'),
+      this.load('display', '../audio/csgo_ui_crate_display.wav'),
+      this.load('drop_ancient', '../audio/item_drop6_ancient.wav'),
+      this.load('reveal_legendary', '../audio/item_reveal5_legendary.wav'),
+    ]);
+  }
+};
+
+// ── Mode ──
+let openMode = 'cinematic';
+
+const modeToggle = document.getElementById('modeToggle');
+modeToggle.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    modeToggle.querySelector('.active').classList.remove('active');
+    btn.classList.add('active');
+    openMode = btn.dataset.mode;
+  });
+});
+
+// ── Filler items for roulette (texture reuses existing PNGs where available) ──
+const FILLER_POOL = [
+  { weapon: 'P250', skin: 'Sand Dune', rarity: 'Consumer', rarityColor: '#b0c3d9', texture: null },
+  { weapon: 'PP-Bizon', skin: 'Rust Coat', rarity: 'Consumer', rarityColor: '#b0c3d9', texture: null },
+  { weapon: 'MAC-10', skin: 'Indigo', rarity: 'Consumer', rarityColor: '#b0c3d9', texture: null },
+  { weapon: 'G3SG1', skin: 'Safari Mesh', rarity: 'Consumer', rarityColor: '#b0c3d9', texture: null },
+  { weapon: 'Sawed-Off', skin: 'Forest DDPAT', rarity: 'Industrial', rarityColor: '#5e98d9', texture: null },
+  { weapon: 'Negev', skin: 'Army Sheen', rarity: 'Industrial', rarityColor: '#5e98d9', texture: null },
+  { weapon: 'MP7', skin: 'Groundwater', rarity: 'Industrial', rarityColor: '#5e98d9', texture: null },
+  { weapon: 'Nova', skin: 'Predator', rarity: 'Industrial', rarityColor: '#5e98d9', texture: null },
+  { weapon: 'AUG', skin: 'Storm', rarity: 'Mil-Spec', rarityColor: '#4b69ff', texture: '../textures/m4a4_neo_noir.png' },
+  { weapon: 'Galil AR', skin: 'Chatterbox', rarity: 'Mil-Spec', rarityColor: '#4b69ff', texture: '../textures/ak47_asiimov.png' },
+  { weapon: 'FAMAS', skin: 'Djinn', rarity: 'Mil-Spec', rarityColor: '#4b69ff', texture: null },
+  { weapon: 'SG 553', skin: 'Pulse', rarity: 'Mil-Spec', rarityColor: '#4b69ff', texture: null },
+  { weapon: 'Five-SeveN', skin: 'Hyper Beast', rarity: 'Restricted', rarityColor: '#8847ff', texture: '../textures/awp_gungnir.png' },
+  { weapon: 'USP-S', skin: 'Cortex', rarity: 'Restricted', rarityColor: '#8847ff', texture: '../textures/deagle_mecha_industries.png' },
+  { weapon: 'XM1014', skin: 'Tranquility', rarity: 'Restricted', rarityColor: '#8847ff', texture: '../textures/knife_fade.png' },
+  { weapon: 'Glock-18', skin: 'Wasteland Rebel', rarity: 'Classified', rarityColor: '#d32ce6', texture: '../textures/ak47_neon_rider.png' },
+  { weapon: 'P90', skin: 'Asiimov', rarity: 'Classified', rarityColor: '#d32ce6', texture: '../textures/ak47_asiimov.png' },
+  { weapon: 'M4A1-S', skin: 'Chantico\'s Fire', rarity: 'Classified', rarityColor: '#d32ce6', texture: '../textures/m4a4_howl.png' },
+];
+
+const RARITY_WEIGHTS = [
+  { pool: FILLER_POOL.filter(i => i.rarity === 'Consumer'), weight: 30 },
+  { pool: FILLER_POOL.filter(i => i.rarity === 'Industrial'), weight: 28 },
+  { pool: FILLER_POOL.filter(i => i.rarity === 'Mil-Spec'), weight: 22 },
+  { pool: FILLER_POOL.filter(i => i.rarity === 'Restricted'), weight: 12 },
+  { pool: FILLER_POOL.filter(i => i.rarity === 'Classified'), weight: 6 },
+];
+
+function pickFillerItem() {
+  const total = RARITY_WEIGHTS.reduce((s, r) => s + r.weight, 0);
+  let roll = Math.random() * total;
+  for (const r of RARITY_WEIGHTS) {
+    roll -= r.weight;
+    if (roll <= 0) return r.pool[Math.floor(Math.random() * r.pool.length)];
+  }
+  return FILLER_POOL[0];
+}
+
+// ── Roulette System ──
+const CARD_W = 160, CARD_GAP = 6, STRIDE = CARD_W + CARD_GAP;
+const TOTAL_CARDS = 55;
+const WINNER_INDEX = 42;
+
+const rouletteOverlay = document.getElementById('rouletteOverlay');
+const rouletteStrip = document.getElementById('rouletteStrip');
+let rouletteAnim = null;
+
+function buildRouletteStrip(winner) {
+  rouletteStrip.innerHTML = '';
+  for (let i = 0; i < TOTAL_CARDS; i++) {
+    const item = (i === WINNER_INDEX) ? winner : pickFillerItem();
+    const el = document.createElement('div');
+    el.className = 'roulette-item';
+    if (i === WINNER_INDEX) {
+      el.dataset.winner = '1';
+      el.style.setProperty('--glow-color', item.rarityColor);
+    }
+    el.innerHTML = `
+      <div class="item-face">
+        <img src="../textures/rare_item_gold.png" alt="?">
+      </div>
+      <div class="item-bar" style="background:${item.rarityColor}"></div>
+    `;
+    rouletteStrip.appendChild(el);
+  }
+}
+
+function startRoulette(winner, onDone) {
+  buildRouletteStrip(winner);
+  rouletteOverlay.classList.remove('fade-out');
+  rouletteOverlay.classList.add('active');
+
+  const vpCenter = rouletteOverlay.offsetWidth / 2;
+  const targetX = -(WINNER_INDEX * STRIDE + CARD_W / 2 - vpCenter);
+  const jitter = (Math.random() - 0.5) * (CARD_W * 0.5);
+  const finalX = targetX + jitter;
+
+  const startX = STRIDE * 2;
+  const totalDist = startX - finalX;
+  const duration = 6.0;
+  let elapsed = 0;
+  let lastCenterIdx = -1;
+  let tickCooldown = 0;
+
+  rouletteStrip.style.transform = `translateX(${startX}px)`;
+
+  function frame(ts) {
+    if (!rouletteAnim) return;
+    if (!rouletteAnim.prev) rouletteAnim.prev = ts;
+    const dt = Math.min((ts - rouletteAnim.prev) / 1000, 0.05);
+    rouletteAnim.prev = ts;
+    elapsed += dt;
+
+    const t = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 4);
+    const x = startX - totalDist * ease;
+    rouletteStrip.style.transform = `translateX(${x}px)`;
+
+    const centerIdx = Math.floor((-x + vpCenter) / STRIDE);
+    tickCooldown -= dt;
+    if (centerIdx !== lastCenterIdx && tickCooldown <= 0) {
+      lastCenterIdx = centerIdx;
+      const speed = 1 - t;
+      const rate = 0.9 + speed * 0.4;
+      const vol = 0.3 + (1 - speed) * 0.4;
+      AudioMgr.play('item_scroll', { volume: vol, rate });
+      tickCooldown = Math.max(0.03, speed * 0.08);
+    }
+
+    if (t < 1) {
+      rouletteAnim.id = requestAnimationFrame(frame);
+    } else {
+      const winnerEl = rouletteStrip.querySelector('[data-winner]');
+      if (winnerEl) winnerEl.classList.add('winner-glow');
+
+      const isGold = winner.rarity === 'Extraordinary';
+      AudioMgr.play(isGold ? 'reveal_legendary' : 'drop_ancient', { volume: 0.7 });
+
+      setTimeout(() => {
+        AudioMgr.play('display', { volume: 0.6 });
+        rouletteOverlay.classList.add('fade-out');
+        setTimeout(() => {
+          rouletteOverlay.classList.remove('active', 'fade-out');
+          rouletteStrip.innerHTML = '';
+          rouletteAnim = null;
+          onDone();
+        }, 500);
+      }, 800);
+    }
+  }
+
+  rouletteAnim = { prev: null, id: requestAnimationFrame(frame) };
+}
+
+// ── Renderer ──
+const canvas = document.getElementById('viewer');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// ── Scene & Camera ──
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(5, 2, 8);
+
+// ── Bloom ──
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.4, 0.4, 0.9);
+composer.addPass(bloomPass);
+composer.addPass(new OutputPass());
+
+// ── HDRI ──
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+pmremGenerator.compileEquirectangularShader();
+
+let envReady = false, caseReady = false, audioReady = false;
+AudioMgr.preloadAll().then(() => { audioReady = true; checkReady(); });
+
+new RGBELoader().load(
+  'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloofendal_48d_partly_cloudy_puresky_1k.hdr',
+  (texture) => {
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+    scene.environment = envMap;
+    texture.dispose();
+    pmremGenerator.dispose();
+    envReady = true;
+    checkReady();
+  },
+  undefined,
+  () => {
+    const roomScene = new RoomEnvironment(renderer);
+    scene.environment = pmremGenerator.fromScene(roomScene, 0.04).texture;
+    roomScene.dispose(); pmremGenerator.dispose();
+    envReady = true; checkReady();
+  }
+);
+
+// ── Controls ──
+const controls = new OrbitControls(camera, canvas);
+window.__scene = scene; window.__camera = camera; window.__controls = controls;
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.autoRotate = false;
+controls.autoRotateSpeed = 0.8;
+controls.enablePan = false;
+controls.minDistance = 3;
+controls.maxDistance = 150;
+controls.maxPolarAngle = Math.PI * 0.6;
+controls.minPolarAngle = Math.PI * 0.2;
+controls.target.set(0, 0.3, 0);
+
+// ── Lighting ──
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+
+const keyLight = new THREE.SpotLight(0xfff0dd, 50, 40, Math.PI / 5, 0.3, 1);
+keyLight.position.set(5, 10, 6);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
+keyLight.shadow.bias = -0.001;
+scene.add(keyLight);
+
+const fillLight = new THREE.PointLight(0xc8d8ff, 12, 30, 1.5);
+fillLight.position.set(-6, 8, -4);
+scene.add(fillLight);
+
+const rimLight = new THREE.PointLight(0xffd080, 10, 25, 1.5);
+rimLight.position.set(-3, 3, 8);
+scene.add(rimLight);
+
+// ── Interior glow light (hidden until open) ──
+const glowLight = new THREE.PointLight(0x000000, 0, 10, 2);
+glowLight.position.set(0, 0.5, 0);
+scene.add(glowLight);
+
+// ── Item pool ──
+const ITEMS = [
+  { weapon: 'AK-47', skin: 'Bloodsport', collection: 'The Spectrum Collection', rarity: 'Covert', rarityColor: '#eb4b4b', model: '../models/ak47_full.glb', texture: '../textures/ak47_bloodsport.png', legacyMaterial: 'ak47', hideMaterials: ['weapon_rif_ak47', 'sticker_gaps'], metalness: 0.8, roughness: 0.35, wrapTexture: true },
+  { weapon: 'AK-47', skin: 'Neon Rider', collection: 'The Danger Zone Case', rarity: 'Covert', rarityColor: '#eb4b4b', model: '../models/ak47_full.glb', texture: '../textures/ak47_neon_rider.png', legacyMaterial: 'ak47', hideMaterials: ['weapon_rif_ak47', 'sticker_gaps'], metalness: 0.6, roughness: 0.4, wrapTexture: true },
+  { weapon: 'M4A4', skin: 'Howl', collection: 'Contraband', rarity: 'Covert', rarityColor: '#eb4b4b', model: '../models/m4a4_full.glb', texture: '../textures/m4a4_howl.png', legacyMaterial: 'rif_m4a1', hideMaterials: ['weapon_rif_m4a4', 'sticker_gaps'], metalness: 0.7, roughness: 0.4 },
+  { weapon: 'AWP', skin: 'Dragon Lore', collection: 'The Cobblestone Collection', rarity: 'Covert', rarityColor: '#eb4b4b', model: '../models/awp_full.glb', texture: '../textures/awp_dragon_lore.png', legacyMaterial: 'awp', hideMaterials: ['weapon_snip_awp', 'sticker_gaps', 'shared_scope'], metalness: 0.85, roughness: 0.3, wrapTexture: true },
+  { weapon: 'Karambit', skin: 'Lore', collection: 'Gamma Collection', rarity: 'Extraordinary', rarityColor: '#ffd700', model: '../models/karambit.glb', texture: '../textures/karambit_lore.png', legacyMaterial: 'weapon_knife_karambit', hideMaterials: [], metalness: 0.9, roughness: 0.25 },
+  { weapon: 'Desert Eagle', skin: 'Mecha Industries', collection: 'The Horizon Collection', rarity: 'Covert', rarityColor: '#eb4b4b', model: '../models/deagle_full.glb', texture: '../textures/deagle_mecha_industries.png', legacyMaterial: 'pist_deagle', hideMaterials: ['weapon_pist_deagle', 'sticker_gaps'], metalness: 0.7, roughness: 0.35, wrapTexture: true },
+  { weapon: 'Butterfly', skin: 'Lore', collection: 'Gamma Collection', rarity: 'Extraordinary', rarityColor: '#ffd700', model: '../models/butterfly.glb', texture: '../textures/butterfly_lore.png', legacyMaterial: 'weapon_knife_butterfly', hideMaterials: [], metalness: 0.9, roughness: 0.25 },
+];
+
+// ── Loaders ──
+const gltfLoader = new GLTFLoader();
+const textureLoader = new THREE.TextureLoader();
+
+// ── Case Variants ──
+const CASE_VARIANTS = [
+  'spectrum', 'spectrum2', 'chroma', 'chroma2', 'chroma3',
+  'gamma', 'gamma2', 'phoenix', 'breakout', 'huntsman',
+  'shadow', 'revolver', 'glove', 'horizon', 'clutch',
+  'dangerzone', 'nightmare', 'hydra', 'wildfire', 'vanguard',
+  'bloodhound', 'bravo', 'winteroffensive',
+  'armsdeal1', 'armsdeal2', 'armsdeal3',
+  'community_22', 'community_23', 'community_24', 'community_25',
+  'community_26', 'community_27', 'community_28', 'community_29',
+  'community_30', 'community_31', 'community_32',
+];
+
+// ── Load Case Model ──
+let casePivot = null;
+let caseMesh = null;
+let caseBone = null;
+let mixer = null;
+let idleAction = null;
+let openAction = null;
+
+const crateColorTex = textureLoader.load('../models/csgo_drop_crate_yellow_color_psd_c4f10d41.png');
+crateColorTex.flipY = false;
+crateColorTex.colorSpace = THREE.SRGBColorSpace;
+
+const crateNormalTex = textureLoader.load('../models/csgo_drop_crate_normal_psd_a0c4de24.png');
+crateNormalTex.flipY = false;
+
+let decalMesh = null;
+
+function randomizeCaseSkin() {
+  const variant = CASE_VARIANTS[Math.floor(Math.random() * CASE_VARIANTS.length)];
+
+  if (decalMesh && decalMesh.parent) {
+    decalMesh.parent.remove(decalMesh);
+    decalMesh.material.map?.dispose();
+    decalMesh.material.dispose();
+    decalMesh.geometry.dispose();
+    decalMesh = null;
+  }
+
+  const decalTex = textureLoader.load(`../textures/crates/${variant}_front.png`);
+  decalTex.colorSpace = THREE.SRGBColorSpace;
+
+  const geo = new THREE.PlaneGeometry(1.4, 1.2);
+  const mat = new THREE.MeshBasicMaterial({
+    map: decalTex,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+  });
+  decalMesh = new THREE.Mesh(geo, mat);
+  decalMesh.renderOrder = 1;
+
+  if (casePivot) {
+    casePivot.add(decalMesh);
+    decalMesh.position.set(1.2, -0.07, 0);
+    decalMesh.rotation.set(0, Math.PI / 2, 0);
+  }
+}
+
+gltfLoader.load('../models/crate.glb', (gltf) => {
+  const caseModel = gltf.scene;
+
+  const bbox = new THREE.Box3().setFromObject(caseModel);
+  const size = new THREE.Vector3();
+  bbox.getSize(size);
+  const scale = 4 / Math.max(size.x, size.y, size.z);
+  caseModel.scale.setScalar(scale);
+
+  const center = new THREE.Vector3();
+  new THREE.Box3().setFromObject(caseModel).getCenter(center);
+  caseModel.position.sub(center);
+
+  casePivot = new THREE.Group();
+  casePivot.add(caseModel);
+  casePivot.position.y = 0.5;
+
+  caseModel.traverse((child) => {
+    if (child.isMesh) {
+      child.castShadow = true;
+      caseMesh = child;
+      child.material.map = crateColorTex;
+      child.material.normalMap = crateNormalTex;
+      child.material.metalness = 0.7;
+      child.material.roughness = 0.35;
+      child.material.color.set(0xffffff);
+      child.material.envMapIntensity = 1.0;
+      child.material.needsUpdate = true;
+    }
+  });
+
+  scene.add(casePivot);
+
+  caseModel.traverse((child) => {
+    if (child.name === 'case') caseBone = child;
+  });
+  randomizeCaseSkin();
+
+  mixer = new THREE.AnimationMixer(caseModel);
+
+  const idleClip = gltf.animations.find(a => a.name === 'idle');
+  if (idleClip) {
+    idleAction = mixer.clipAction(idleClip);
+    idleAction.play();
+  }
+
+  const openClip = gltf.animations.find(a => a.name === 'open');
+  if (openClip) {
+    openAction = mixer.clipAction(openClip);
+    openAction.setLoop(THREE.LoopOnce);
+    openAction.clampWhenFinished = true;
+  }
+
+  caseReady = true;
+  checkReady();
+});
+
+// ── State ──
+let state = 'idle';
+let revealItem = null;
+let weaponPivot = null;
+let weaponMeshes = [];
+let stateTimer = 0;
+
+// Reusable vectors (no per-frame allocation)
+const _camTarget = new THREE.Vector3();
+const _orbitTarget = new THREE.Vector3();
+
+const RARITY_COLORS = {
+  'Covert': new THREE.Color(0xeb4b4b),
+  'Extraordinary': new THREE.Color(0xffd700),
+};
+
+const openBtn = document.getElementById('openBtn');
+const resultPanel = document.getElementById('resultPanel');
+const openAgain = document.getElementById('openAgain');
+const muteBtn = document.getElementById('muteBtn');
+
+muteBtn.addEventListener('click', () => {
+  AudioMgr.muted = !AudioMgr.muted;
+  muteBtn.classList.toggle('muted', AudioMgr.muted);
+  muteBtn.title = AudioMgr.muted ? 'Unmute' : 'Mute';
+});
+
+openBtn.addEventListener('click', () => {
+  if (state !== 'idle') return;
+  openBtn.disabled = true;
+  openBtn.textContent = 'Loading...';
+
+  revealItem = ITEMS[Math.floor(Math.random() * ITEMS.length)];
+
+  modeToggle.style.display = 'none';
+
+  if (openMode === 'classic') {
+    preloadWeapon(revealItem, () => {
+      openBtn.style.display = 'none';
+      startClassicOpen();
+    });
+  } else {
+    preloadWeapon(revealItem, () => {
+      openBtn.textContent = 'Opening...';
+      startOpen();
+    });
+  }
+});
+
+openAgain.addEventListener('click', resetCase);
+
+function preloadWeapon(item, onReady) {
+  const skinTex = textureLoader.load(item.texture);
+  skinTex.flipY = false;
+  skinTex.colorSpace = THREE.SRGBColorSpace;
+  if (item.wrapTexture) {
+    skinTex.wrapS = THREE.RepeatWrapping;
+    skinTex.wrapT = THREE.RepeatWrapping;
+  }
+
+  gltfLoader.load(item.model, (gltf) => {
+    const model = gltf.scene;
+
+    const bbox = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    bbox.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const isSmall = item.legacyMaterial.includes('knife') || item.legacyMaterial.includes('pist');
+    model.scale.setScalar((isSmall ? 3 : 5) / maxDim);
+
+    const center = new THREE.Vector3();
+    new THREE.Box3().setFromObject(model).getCenter(center);
+    model.position.sub(center);
+
+    weaponPivot = new THREE.Group();
+    weaponPivot.add(model);
+    weaponPivot.position.y = 0.5;
+    weaponPivot.visible = false;
+
+    // Collect meshes once for fast per-frame updates
+    weaponMeshes = [];
+    model.traverse((child) => {
+      if (!child.isMesh) return;
+      const mat = child.material;
+      const matName = mat?.name || '';
+
+      if (item.hideMaterials.some(h => matName === h)) {
+        child.visible = false;
+        return;
+      }
+
+      child.castShadow = true;
+      if (matName === item.legacyMaterial) {
+        mat.map = skinTex;
+        mat.metalness = item.metalness;
+        mat.roughness = item.roughness;
+        mat.envMapIntensity = 0.8;
+      }
+      mat.transparent = true;
+      mat.opacity = 0;
+      mat.needsUpdate = true;
+      weaponMeshes.push(child);
+    });
+
+    scene.add(weaponPivot);
+    onReady();
+  });
+}
+
+function showInspectResult() {
+  state = 'inspecting';
+
+  if (weaponPivot) {
+    weaponPivot.visible = true;
+    weaponPivot.position.y = 2.0;
+  }
+  if (casePivot) casePivot.visible = false;
+
+  for (let i = 0; i < weaponMeshes.length; i++) {
+    weaponMeshes[i].material.transparent = false;
+    weaponMeshes[i].material.opacity = 1;
+    weaponMeshes[i].material.needsUpdate = true;
+  }
+
+  camera.position.set(3, 2, 9);
+  controls.target.set(0, 2.0, 0);
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 1.5;
+
+  openBtn.style.display = 'none';
+  const tag = document.getElementById('resultRarity');
+  tag.textContent = revealItem.rarity;
+  tag.style.color = revealItem.rarityColor;
+  tag.style.borderColor = revealItem.rarityColor;
+  document.getElementById('resultTitle').innerHTML = `${revealItem.weapon} <em>${revealItem.skin}</em>`;
+  document.getElementById('resultSubtitle').textContent = revealItem.collection;
+  resultPanel.classList.add('visible');
+}
+
+function startClassicOpen() {
+  state = 'classic-opening';
+  stateTimer = 0;
+  controls.autoRotate = false;
+
+  AudioMgr.play('crate_open', { volume: 0.8 });
+
+  if (idleAction) idleAction.fadeOut(0.3);
+  if (openAction) {
+    openAction.reset();
+    openAction.fadeIn(0.3);
+    openAction.play();
+  }
+}
+
+function startOpen() {
+  state = 'opening';
+  stateTimer = 0;
+  controls.autoRotate = false;
+
+  const col = RARITY_COLORS[revealItem.rarity] || RARITY_COLORS['Covert'];
+  glowLight.color.copy(col);
+
+  AudioMgr.play('crate_open', { volume: 0.8 });
+
+  if (idleAction) idleAction.fadeOut(0.3);
+  if (openAction) {
+    openAction.reset();
+    openAction.fadeIn(0.3);
+    openAction.play();
+  }
+}
+
+function resetCase() {
+  if (rouletteAnim) {
+    cancelAnimationFrame(rouletteAnim.id);
+    rouletteAnim = null;
+    rouletteOverlay.classList.remove('active', 'fade-out');
+    rouletteStrip.innerHTML = '';
+  }
+
+  if (weaponPivot) {
+    scene.remove(weaponPivot);
+    weaponPivot.traverse((child) => {
+      if (child.isMesh) {
+        child.geometry?.dispose();
+        if (child.material) {
+          if (child.material.map) child.material.map.dispose();
+          child.material.dispose();
+        }
+      }
+    });
+    weaponPivot = null;
+    weaponMeshes = [];
+  }
+
+  if (openAction) { openAction.stop(); openAction.reset(); }
+  if (idleAction) { idleAction.reset(); idleAction.fadeIn(0.3); idleAction.play(); }
+  glowLight.intensity = 0;
+  bloomPass.strength = 0.3;
+
+  resultPanel.classList.remove('visible');
+  openBtn.style.display = '';
+  openBtn.disabled = false;
+  openBtn.textContent = 'Open Case';
+  modeToggle.style.display = '';
+
+  camera.position.set(5, 2, 8);
+  controls.target.set(0, 0.3, 0);
+  controls.autoRotate = false;
+
+  if (casePivot) casePivot.visible = true;
+  randomizeCaseSkin();
+  state = 'idle';
+}
+
+// ── Ready ──
+function checkReady() {
+  if (envReady && caseReady && audioReady) {
+    setTimeout(() => document.getElementById('loader').classList.add('hidden'), 400);
+  }
+}
+
+// ── Animation Loop ──
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = Math.min(clock.getDelta(), 0.05); // cap delta to avoid spikes
+  const t = clock.getElapsedTime();
+
+  if (mixer) mixer.update(delta);
+
+  if (state === 'idle' && casePivot) {
+    casePivot.position.y = 0.5;
+  }
+
+  if (state === 'classic-opening') {
+    stateTimer += delta;
+    glowLight.intensity = Math.min(stateTimer * 15, 15);
+
+    if (stateTimer > 1.8) {
+      state = 'classic-roulette';
+      glowLight.intensity = 0;
+      startRoulette(revealItem, () => {
+        showInspectResult();
+      });
+    }
+  }
+
+  if (state === 'opening') {
+    stateTimer += delta;
+    glowLight.intensity = Math.min(stateTimer * 20, 25);
+
+    if (stateTimer > 1.8) {
+      state = 'revealing';
+      stateTimer = 0;
+      if (weaponPivot) weaponPivot.visible = true;
+      if (casePivot) casePivot.visible = false;
+
+      const isGold = revealItem.rarity === 'Extraordinary';
+      AudioMgr.play(isGold ? 'reveal_legendary' : 'drop_ancient', { volume: 0.7 });
+    }
+  }
+
+  if (state === 'revealing') {
+    stateTimer += delta;
+    const p = Math.min(stateTimer / 1.5, 1.0);
+    const ease = 1 - Math.pow(1 - p, 3); // easeOutCubic
+
+    // Weapon rises and fades in
+    if (weaponPivot) {
+      weaponPivot.position.y = 0.5 + ease * 1.5;
+      weaponPivot.rotation.y += delta * 0.8;
+    }
+
+    // Update opacity on cached meshes (no traverse)
+    const opacity = Math.min(p * 2, 1.0);
+    for (let i = 0; i < weaponMeshes.length; i++) {
+      weaponMeshes[i].material.opacity = opacity;
+    }
+
+    // Glow fades out
+    glowLight.intensity = 25 * (1 - ease);
+
+    // Camera moves to weapon
+    _camTarget.set(3, 2, 9);
+    _orbitTarget.set(0, 1.5, 0);
+    camera.position.lerp(_camTarget, delta * 2);
+    controls.target.lerp(_orbitTarget, delta * 2);
+
+    if (p >= 1.0) {
+      glowLight.intensity = 0;
+      bloomPass.strength = 0.3;
+      AudioMgr.play('display', { volume: 0.6 });
+      showInspectResult();
+    }
+  }
+
+  if (state === 'inspecting' && weaponPivot) {
+    weaponPivot.position.y = 2.0 + Math.sin(t * 0.8) * 0.04;
+  }
+
+  controls.update();
+  composer.render();
+}
+
+animate();
+
+// ── Resize ──
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+
+</body>
+</html>
